@@ -19,7 +19,9 @@ CLOUDSDK_PYTHON_SITEPACKAGES=1 gcloud compute ssh <instance-name> --tunnel-throu
 ```
 
 When using GitHub Actions:
+
 ```yaml
+# Use Workload Identity to authenticate with Google Cloud
 - name: Google Cloud Auth
   uses: google-github-actions/auth@v2
   with:
@@ -28,10 +30,8 @@ When using GitHub Actions:
 
 - name: Set up gcloud
   uses: google-github-actions/setup-gcloud@v2
-  if: ${{ inputs.gcp_bastion_tunnel_enabled }}
 
-- name: SSH forward
-  if: ${{ inputs.gcp_bastion_tunnel_enabled }}
+- name: Create a secure tunnel using IAP and Tinyproxy
   run: |
     gcloud components install gke-gcloud-auth-plugin --quiet
     gcloud compute ssh ${{ inputs.gcp_bastion_host }} --tunnel-through-iap --project=${{ inputs.gcp_bastion_project }} --zone=${{ inputs.gcp_bastion_zone }} --ssh-flag="-4 -L8888:localhost:8888 -N -q -f"

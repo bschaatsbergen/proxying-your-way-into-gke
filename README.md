@@ -35,4 +35,11 @@ When using GitHub Actions:
   run: |
     gcloud components install gke-gcloud-auth-plugin --quiet
     gcloud compute ssh ${{ inputs.gcp_bastion_host }} --tunnel-through-iap --project=${{ inputs.gcp_bastion_project }} --zone=${{ inputs.gcp_bastion_zone }} --ssh-flag="-4 -L8888:localhost:8888 -N -q -f"
+
+- name: Set up Terraform
+  uses: hashicorp/setup-terraform@v3
+- name: Terraform
+  run: |
+    terraform init
+    terraform plan
 ```

@@ -131,7 +131,7 @@ resource "google_compute_firewall" "deny_all_egress" {
 
   direction = "EGRESS"
 
-  allow {
+  deny {
     protocol = "all"
   }
 

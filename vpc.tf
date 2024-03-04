@@ -39,11 +39,12 @@ resource "google_compute_subnetwork" "bastion" {
   region                   = "us-central1"
   network                  = google_compute_network.default.id
   private_ip_google_access = true
+  project                  = "your-project"
+
   log_config {
     aggregation_interval = "INTERVAL_5_SEC"
     flow_sampling        = 0.5
   }
-  project = "your-project"
 }
 
 # Create a subnet for the GKE cluster
@@ -53,19 +54,22 @@ resource "google_compute_subnetwork" "default" {
   region                   = "us-central1"
   network                  = google_compute_network.default.id
   private_ip_google_access = true
+  project                  = "your-project"
+
   secondary_ip_range {
     range_name    = "gke-services"
     ip_cidr_range = "10.1.0.0/16"
   }
+
   secondary_ip_range {
     range_name    = "gke-pods"
     ip_cidr_range = "10.2.0.0/20"
   }
+
   log_config {
     aggregation_interval = "INTERVAL_5_SEC"
     flow_sampling        = 0.5
   }
-  project = "your-project"
 }
 
 # A route for public internet traffic
@@ -81,10 +85,11 @@ resource "google_compute_route" "public_internet" {
 
 # Allow internal traffic within the network
 resource "google_compute_firewall" "allow_internal_ingress" {
-  name    = "allow-internal-ingress"
-  network = google_compute_network.default.name
-
-  direction = "INGRESS"
+  name          = "allow-internal-ingress"
+  network       = google_compute_network.default.name
+  direction     = "INGRESS"
+  source_ranges = ["10.128.0.0/9"]
+  project       = "your-project"
 
   allow {
     protocol = "icmp"
@@ -99,45 +104,32 @@ resource "google_compute_firewall" "allow_internal_ingress" {
     protocol = "udp"
     ports    = ["0-65535"]
   }
-
-  source_ranges = ["10.128.0.0/9"]
-
-  project = "your-project"
 }
 
 # Allow incoming TCP traffic from Identity-Aware Proxy (IAP)
 resource "google_compute_firewall" "allow_iap_tcp_ingress" {
-  name    = "allow-iap-tcp-ingress"
-  network = google_compute_network.default.name
-
-  direction = "INGRESS"
+  name          = "allow-iap-tcp-ingress"
+  network       = google_compute_network.default.name
+  direction     = "INGRESS"
+  project       = "your-project"
+  source_ranges = [local.iap_tcp_forwarding_cidr_range]
 
   allow {
     protocol = "tcp"
-    ports    = ["22"]
   }
-
-  source_ranges = [
-    local.iap_tcp_forwarding_cidr_range,
-  ]
-
-  project = "your-project"
 }
 
 # By default, deny all egress traffic
 resource "google_compute_firewall" "deny_all_egress" {
-  name    = "deny-all-egress"
-  network = google_compute_network.default.name
-
-  direction = "EGRESS"
+  name               = "deny-all-egress"
+  network            = google_compute_network.default.name
+  project            = "your-project"
+  direction          = "EGRESS"
+  destination_ranges = ["0.0.0.0/0"]
 
   deny {
     protocol = "all"
   }
-
-  destination_ranges = ["0.0.0.0/0"]
-
-  project = "your-project"
 }
 
 resource "google_compute_network_firewall_policy" "gke_bastion" {
@@ -148,26 +140,25 @@ resource "google_compute_network_firewall_policy" "gke_bastion" {
 
 # Allow GKE bastion instances to communicate with only the FQDNs to install packages
 resource "google_compute_network_firewall_policy_rule" "allow_gke_bastion_egress_to_packages_debian_org" {
-  firewall_policy = google_compute_network_firewall_policy.gke_bastion.name
-  priority        = 1000
-
+  firewall_policy         = google_compute_network_firewall_policy.gke_bastion.name
+  priority                = 1000
   action                  = "allow"
   direction               = "EGRESS"
   target_service_accounts = [google_service_account.gke_bastion.email]
+  project                 = "your-project"
 
   match {
-    layer4_configs {
-      ip_protocol = "tcp"
-    }
-
     dest_fqdns = [
       "packages.debian.org",
       "debian.map.fastly.net",
       "deb.debian.org",
       "packages.cloud.google",
     ]
+
+    layer4_configs {
+      ip_protocol = "tcp"
+    }
   }
-  project = "your-project"
 }
 
 # Allow private google access egress traffic
@@ -178,6 +169,7 @@ resource "google_compute_firewall" "allow_private_google_access_egress" {
   priority    = 4000
   direction   = "EGRESS"
   target_tags = []
+  project     = "your-project"
 
   destination_ranges = [
     local.private_google_access_cidr_range,
@@ -192,18 +184,17 @@ resource "google_compute_firewall" "allow_private_google_access_egress" {
   log_config {
     metadata = "INCLUDE_ALL_METADATA"
   }
-  project = "your-project"
 }
 
 resource "google_compute_router" "default" {
   name    = "router"
   region  = "us-central1"
   network = google_compute_network.default.id
+  project = "your-project"
 
   bgp {
     asn = 64514
   }
-  project = "your-project"
 }
 
 # For redundancy, create two NAT IPs
@@ -222,12 +213,12 @@ resource "google_compute_router_nat" "default" {
   nat_ip_allocate_option             = "MANUAL_ONLY"
   nat_ips                            = google_compute_address.nat.*.self_link
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  project                            = "your-project"
 
   log_config {
     enable = true
     filter = "ERRORS_ONLY"
   }
-  project = "your-project"
 }
 
 # Create private DNS zones to route traffic to private google access IPs
@@ -236,6 +227,7 @@ resource "google_dns_managed_zone" "private_service_access" {
   name       = each.key
   dns_name   = each.value.dns
   visibility = "private"
+  project    = "your-project"
 
   private_visibility_config {
     dynamic "networks" {
@@ -246,7 +238,6 @@ resource "google_dns_managed_zone" "private_service_access" {
       }
     }
   }
-  project = "your-project"
 }
 
 resource "google_dns_record_set" "a_records" {
@@ -295,15 +286,16 @@ resource "google_compute_route" "restricted_google_access" {
 
 # A network management connectivity test to verify the GKE bastion instance can communicate with the GKE cluster
 resource "google_network_management_connectivity_test" "gke_bastion_to_gke" {
-  name = "gke-bastion-to-gke"
+  name     = "gke-bastion-to-gke"
+  protocol = "TCP"
+  project  = "your-project"
+
   source {
     ip_address = google_compute_address.gke_bastion.address
   }
+
   destination {
     port       = 443
     ip_address = google_container_cluster.example.endpoint
   }
-
-  protocol = "TCP"
-  project  = "your-project"
 }

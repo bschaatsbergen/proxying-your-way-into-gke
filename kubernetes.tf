@@ -1,7 +1,7 @@
 provider "kubernetes" {
-  host                   = "https://${google_container_cluster.example.endpoint}"
+  host = "https://${google_container_cluster.example.endpoint}"
   # the `proxy_url` references the locally secured tunnel created by Identity-Aware Proxy.
-  proxy_url              = "http://localhost:8888"
+  proxy_url              = "socks5://127.0.0.1:8888"
   cluster_ca_certificate = base64decode(google_container_cluster.example.master_auth.0.cluster_ca_certificate)
 
   # we use this for authenticating natively with GKE, rather than relying on tokens and certificates.

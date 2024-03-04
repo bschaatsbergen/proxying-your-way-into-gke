@@ -1,0 +1,5 @@
+#cloud-config
+
+runcmd:
+  - [ sed, -i, 's/PermitTunnel no/PermitTunnel yes/g', /etc/ssh/sshd_config ]
+  - [ systemctl, restart, sshd ]

@@ -1,4 +1,4 @@
-# Proxying your way in GKE
+# Proxying your way into GKE
 
 Securely connect to a Google Kubernetes Engine (GKE) Cluster using Terraform, SSH, and Identity-Aware Proxy.
 

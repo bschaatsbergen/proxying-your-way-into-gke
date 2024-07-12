@@ -1,3 +1,7 @@
+locals {
+  master_ipv4_cidr_block = "10.3.0.0/28"
+}
+
 resource "google_service_account" "gke_node_pool" {
   account_id = "gke-node-pool"
   project    = "your-project"
@@ -78,7 +82,7 @@ resource "google_container_cluster" "example" {
   private_cluster_config {
     enable_private_nodes    = true
     enable_private_endpoint = true
-    master_ipv4_cidr_block  = "10.3.0.0/28"
+    master_ipv4_cidr_block  = local.master_ipv4_cidr_block
   }
 
   # whitelist networks that may access the private endpoint

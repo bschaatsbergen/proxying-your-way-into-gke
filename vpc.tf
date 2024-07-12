@@ -92,7 +92,17 @@ resource "google_compute_firewall" "allow_internal_ingress" {
   ]
 
   allow {
-    protocol = "all"
+    protocol = "icmp"
+  }
+
+  allow {
+    protocol = "tcp"
+    ports    = ["0-65535"]
+  }
+
+  allow {
+    protocol = "udp"
+    ports    = ["0-65535"]
   }
 }
 
@@ -111,7 +121,17 @@ resource "google_compute_firewall" "allow_internal_egress" {
   ]
 
   allow {
-    protocol = "all"
+    protocol = "icmp"
+  }
+
+  allow {
+    protocol = "tcp"
+    ports    = ["0-65535"]
+  }
+
+  allow {
+    protocol = "udp"
+    ports    = ["0-65535"]
   }
 }
 
@@ -133,19 +153,6 @@ resource "google_compute_firewall" "allow_health_check_ingress" {
   project       = "your-project"
   network       = google_compute_network.default.name
   direction     = "INGRESS"
-  source_ranges = local.health_check_cidr_ranges
-
-  allow {
-    protocol = "tcp"
-    ports    = ["80", "443"]
-  }
-}
-
-resource "google_compute_firewall" "allow_health_check_egress" {
-  name          = "allow-health-checks-egress"
-  project       = "your-project"
-  network       = google_compute_network.default.name
-  direction     = "EGRESS"
   source_ranges = local.health_check_cidr_ranges
 
   allow {
@@ -183,7 +190,8 @@ resource "google_compute_firewall" "allow_private_google_access_egress" {
   ]
 
   allow {
-    protocol = "all"
+    protocol = "tcp"
+    ports    = ["443"]
   }
 
   log_config {
@@ -205,7 +213,8 @@ resource "google_compute_firewall" "allow_restricted_google_access_egress" {
   ]
 
   allow {
-    protocol = "all"
+    protocol = "tcp"
+    ports    = ["443"]
   }
 
   log_config {
